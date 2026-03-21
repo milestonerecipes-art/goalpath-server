@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GoalPath"/>
+<meta name="theme-color" content="#0d0f14"/>
+<title>GoalPath</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0d0f14;font-family:'Outfit',sans-serif;color:#f0f0f2;overflow:hidden}
+#app{display:flex;height:100vh}
+
+/* ── SIDEBAR ── */
+#sidebar{width:248px;min-width:248px;background:#12141b;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;overflow:hidden;transition:width .3s,min-width .3s}
+#sidebar.closed{width:0;min-width:0}
+.side-inner{width:248px;display:flex;flex-direction:column;height:100%;padding:18px 0 0}
+.side-logo{padding:0 20px 16px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:16px;font-size:1.05rem;font-weight:700;letter-spacing:-.02em;flex-shrink:0}
+.side-section{padding:0 20px;font-size:.58rem;font-weight:600;letter-spacing:.15em;color:rgba(255,255,255,.2);margin-bottom:6px;font-family:'JetBrains Mono',monospace}
+.tracker-list{flex:0 1 auto;overflow-y:auto;padding-bottom:8px;max-height:calc(100vh - 160px)}
+.tracker-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 16px 9px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;text-align:left;-webkit-user-select:none;user-select:none}
+.tracker-btn.active{background:rgba(255,255,255,.05)}
+.t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.t-info{flex:1;min-width:0}
+.t-name{display:block;font-size:.83rem;font-weight:500;color:#f0f0f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-meta{display:block;font-size:.62rem;color:rgba(255,255,255,.28);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.side-foot{padding:8px 14px 14px;flex-shrink:0}
+.btn-new{width:100%;padding:9px 15px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.28);border-radius:10px;color:#a5b4fc;font-size:.81rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif}
+
+/* ── TOGGLE TAB ── */
+#side-tab{position:fixed;top:50%;transform:translateY(-50%);z-index:50;width:18px;height:50px;background:#1c1e27;border:1px solid rgba(255,255,255,.09);border-left:none;border-radius:0 7px 7px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:left .3s;padding:0;left:0}
+
+/* ── MAIN ── */
+#main{flex:1;overflow-y:auto;padding:16px 14px;min-width:0}
+.main-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.main-title{font-size:1.3rem;font-weight:700;letter-spacing:-.03em;margin-bottom:3px}
+.main-sub{font-size:.68rem;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.leg{display:flex;align-items:center;gap:4px;font-size:.6rem;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ── NOTIF BANNER ── */
+.notif-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:10px;margin-bottom:10px;font-size:.68rem;font-family:'JetBrains Mono',monospace;flex-wrap:wrap}
+.notif-bar.ask{background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);color:rgba(255,255,255,.5)}
+.notif-bar.ok{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.25);color:rgba(16,185,129,.8)}
+.notif-bar.no{background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.25);color:rgba(244,63,94,.7)}
+.btn-attiva{padding:5px 14px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);border-radius:7px;color:#a5b4fc;font-size:.74rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;flex-shrink:0}
+
+/* ── GRID ── */
+.grid{display:grid;gap:4px;width:100%}
+.day-cell{aspect-ratio:1;border:1px solid;border-radius:7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px;min-width:0;transition:transform .1s,opacity .1s}
+.day-cell:active:not(.locked){transform:scale(.93)}
+.day-cell.locked{cursor:not-allowed;opacity:.5}
+.day-num{font-size:clamp(.5rem,3.2vw,.8rem);font-weight:600;font-family:'JetBrains Mono',monospace;line-height:1;color:rgba(255,255,255,.75)}
+.day-cell.locked .day-num{color:rgba(255,255,255,.25)}
+.day-score{font-size:clamp(.38rem,2.4vw,.6rem);font-family:'JetBrains Mono',monospace;line-height:1;font-weight:500}
+
+/* ── BOTTOM PANELS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;z-index:200}
+.panel{background:#13151c;border:1px solid rgba(255,255,255,.08);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .22s ease-out}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 20px 12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)}
+.panel-day-lbl{font-size:.58rem;font-weight:600;letter-spacing:.15em;color:rgba(255,255,255,.26);font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.panel-day-title{font-size:.98rem;font-weight:600}
+.panel-locked-msg{font-size:.64rem;color:#f87171;font-family:'JetBrains Mono',monospace;margin-top:3px}
+.btn-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.panel-body{padding:16px 20px 32px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+
+/* ── TASK INPUT ── */
+.task-row{display:flex;gap:8px}
+.task-in{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f0f0f2;font-family:'Outfit',sans-serif;font-size:.87rem;padding:10px 13px;outline:none}
+.task-in::placeholder{color:rgba(255,255,255,.3)}
+.btn-add{border:none;border-radius:10px;color:#fff;font-family:'Outfit',sans-serif;font-size:.82rem;font-weight:600;padding:10px 18px;cursor:pointer;flex-shrink:0}
+
+/* ── TODO LIST ── */
+.todo-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.todo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px}
+.todo-item.done{opacity:.5}
+.chk{width:20px;height:20px;border-radius:5px;border:1.5px solid rgba(255,255,255,.2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.chk.on{border-color:var(--c);background:var(--c)}
+.todo-wrap{flex:1;min-width:0}
+.todo-txt{font-size:.87rem;line-height:1.35;display:block}
+.todo-txt.done{text-decoration:line-through}
+.todo-note{font-size:.69rem;color:rgba(255,255,255,.35);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-nota{padding:5px 10px;border-radius:7px;font-size:.7rem;font-weight:600;cursor:pointer;flex-shrink:0;font-family:'Outfit',sans-serif}
+.btn-nota.empty{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
+.btn-nota.full{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a5b4fc}
+.btn-del{background:transparent;border:none;color:rgba(244,63,94,.45);font-size:.65rem;cursor:pointer;padding:3px 5px;border-radius:4px;flex-shrink:0}
+
+/* ── PROGRESS ── */
+.prog-wrap{margin-top:2px}
+.prog-lbl{font-size:.68rem;color:rgba(255,255,255,.3);margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+.prog-track{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s ease}
+
+/* ── LOCKED BANNER ── */
+.locked-msg{padding:12px 14px;background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.2);border-radius:10px;font-size:.78rem;color:rgba(244,63,94,.7);font-family:'JetBrains Mono',monospace;line-height:1.6}
+
+/* ── MODALS ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:400;padding:16px}
+.modal{background:#16181f;border:1px solid rgba(255,255,255,.1);border-radius:18px;width:100%;max-width:460px;padding:26px;box-shadow:0 32px 80px rgba(0,0,0,.65);max-height:90vh;overflow-y:auto;animation:popUp .2s ease-out}
+@keyframes popUp{from{opacity:0;transform:scale(.95) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-title{font-size:1.2rem;font-weight:700;margin-bottom:4px;color:#f0f0f2}
+.modal-sub{font-size:.78rem;color:rgba(255,255,255,.32);margin-bottom:18px}
+.f-lbl{display:block;font-size:.68rem;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.38);margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+.f-in{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f0f0f2;font-family:'Outfit',sans-serif;font-size:.88rem;padding:9px 13px;outline:none;margin-bottom:16px}
+.f-in::placeholder{color:rgba(255,255,255,.3)}
+textarea.f-in{resize:none;min-height:110px;line-height:1.5}
+.pills{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.pill{padding:5px 13px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif}
+.colors{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+.col-dot{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.col-dot.sel{transform:scale(1.3);box-shadow:0 0 0 2.5px #fff}
+.modal-foot{display:flex;gap:9px;margin-top:16px}
+.btn-cancel{flex:1;padding:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.45);font-size:.86rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif}
+.btn-ok{flex:2;padding:10px;border:none;border-radius:10px;color:#fff;font-size:.86rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif}
+
+/* ── CTX MENU ── */
+.ctx{position:fixed;z-index:600;background:#1b1d26;border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:6px;min-width:178px;box-shadow:0 18px 50px rgba(0,0,0,.65);animation:popUp .15s ease-out}
+.ctx-lbl{padding:7px 12px 5px;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx-sep{height:1px;background:rgba(255,255,255,.08);margin:4px 0}
+.ctx-btn{width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:transparent;border:none;border-radius:8px;color:#f0f0f2;font-size:.84rem;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif}
+.ctx-btn:hover{background:rgba(255,255,255,.06)}
+.ctx-btn.red{color:#f87171}
+.ctx-btn.red:hover{background:rgba(244,63,94,.1)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;gap:16px;color:rgba(255,255,255,.3);text-align:center}
+
+/* iPhone 12/13/14 = 390px wide, iPhone 12 Pro Max = 428px */
+@media (max-width: 480px) {
+  /* Sidebar più stretta */
+  #sidebar{width:200px;min-width:200px}
+  #sidebar.closed{width:0;min-width:0}
+  .side-inner{width:200px}
+  .t-name{font-size:.78rem}
+  .t-meta{font-size:.58rem}
+  
+  /* Main più compatto */
+  #main{padding:12px 10px}
+  .main-title{font-size:1.1rem}
+  .main-sub{font-size:.62rem}
+  
+  /* Legend su due righe compatte */
+  .legend{gap:8px;margin-bottom:8px}
+  .leg{font-size:.58rem}
+  .leg-dot{width:7px;height:7px}
+  
+  /* Notif bar */
+  .notif-bar{padding:7px 10px;font-size:.62rem;margin-bottom:8px}
+  .btn-attiva{font-size:.68rem;padding:4px 10px}
+
+  /* Grid celle più grandi e sfruttano tutto lo spazio */
+  .grid{gap:4px}
+  .day-num{font-size:clamp(.55rem,3.8vw,.85rem)}
+  .day-score{font-size:clamp(.4rem,2.6vw,.65rem)}
+  
+  /* Main header */
+  .main-header{margin-bottom:10px;gap:8px}
+}
+
+/* iPhone SE = 375px */
+@media (max-width: 380px) {
+  #sidebar{width:185px;min-width:185px}
+  .side-inner{width:185px}
+  #main{padding:10px 8px}
+  .main-title{font-size:1rem}
+  .grid{gap:3px}
+  .day-num{font-size:clamp(.5rem,4vw,.82rem)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="side-inner">
+      <div class="side-logo">GoalPath</div>
+      <div class="side-section">I MIEI OBIETTIVI</div>
+      <div class="tracker-list" id="tracker-list"></div>
+      <div class="side-foot">
+        <button class="btn-new" id="btn-new">＋ Nuovo Obiettivo</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- TOGGLE TAB -->
+  <button id="side-tab">
+    <svg id="tab-arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
+      <polyline points="7,1 3,5 7,9" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- MAIN -->
+  <main id="main"><div id="main-content"></div></main>
+</div>
+
+<!-- DAY PANEL -->
+<div id="day-overlay" class="overlay" style="display:none">
+  <div class="panel" id="day-panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-day-lbl" id="p-lbl"></div>
+        <div class="panel-day-title" id="p-title"></div>
+        <div class="panel-locked-msg" id="p-locked" style="display:none">Giorno bloccato — termine scaduto</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="p-donut"></div>
+        <button class="btn-close" id="p-close">✕</button>
+      </div>
+    </div>
+    <div class="panel-body" id="p-body"></div>
+  </div>
+</div>
+
+<!-- NOTE PANEL -->
+<div id="note-overlay" class="overlay" style="display:none">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-day-lbl">NOTE TASK</div>
+        <div class="panel-day-title" id="note-title" style="font-size:.88rem;max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <button class="btn-close" id="note-close">✕</button>
+    </div>
+    <div class="panel-body">
+      <label class="f-lbl">Note / dettagli / link</label>
+      <textarea class="f-in" id="note-ta" placeholder="Scrivi note, link, dettagli…" rows="5"></textarea>
+      <div class="modal-foot">
+        <button class="btn-cancel" id="note-cancel">Annulla</button>
+        <button class="btn-ok" id="note-save">Salva nota</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKER MODAL -->
+<div id="tmodal-bg" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="tm-title"></div>
+    <div class="modal-sub" id="tm-sub"></div>
+    <label class="f-lbl">Nome obiettivo</label>
+    <input class="f-in" id="tm-name" placeholder="es. Correre ogni giorno…"/>
+    <label class="f-lbl">Data di inizio</label>
+    <input class="f-in" type="date" id="tm-date"/>
+    <label class="f-lbl">Durata (giorni)</label>
+    <div class="pills" id="tm-pills"></div>
+    <label class="f-lbl">Colore</label>
+    <div class="colors" id="tm-colors"></div>
+    <div style="display:flex;justify-content:center;margin:14px 0 8px">
+      <svg id="tm-donut" width="88" height="88" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>
+        <circle id="tm-arc" cx="60" cy="60" r="46" fill="none" stroke="#6366f1" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 289" transform="rotate(-90 60 60)" style="transition:stroke .3s"/>
+        <text x="60" y="66" text-anchor="middle" fill="white" font-size="20" font-weight="700" font-family="Outfit,sans-serif">0%</text>
+      </svg>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="tm-cancel">Annulla</button>
+      <button class="btn-ok" id="tm-ok">Crea Obiettivo</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="del-bg" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title" style="color:#f43f5e">Elimina Obiettivo</div>
+    <div class="modal-sub">Eliminare definitivamente <strong id="del-name" style="color:#fff"></strong> e tutti i suoi dati?</div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="del-cancel">Annulla</button>
+      <button class="btn-ok" id="del-ok" style="background:#f43f5e">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<!-- CTX MENU -->
+<div id="ctx" class="ctx" style="display:none">
+  <div class="ctx-lbl" id="ctx-name"></div>
+  <div class="ctx-sep"></div>
+  <button class="ctx-btn" id="ctx-edit">Modifica</button>
+  <button class="ctx-btn red" id="ctx-del">Elimina</button>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// STORAGE & STATE
+// ════════════════════════════════════════
+const STORE = 'goalpath_v7';
+const PAL = ['#6366f1','#f59e0b','#10b981','#f43f5e','#8b5cf6','#06b6d4','#84cc16','#ec4899'];
+const uid = () => Math.random().toString(36).slice(2,10);
+const toISO = () => new Date().toISOString().slice(0,10);
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function load() { try { return JSON.parse(localStorage.getItem(STORE)); } catch { return null; } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch {} }
+
+const _saved = load();
+const S = (_saved && _saved.trackers && _saved.trackers.length) ? _saved : {
+  trackers: [{ id:uid(), name:'Il Mio Primo Obiettivo', days_count:30, color:PAL[0], start_date:toISO(), days:[] }],
+  activeId: null
+};
+if (!S.activeId) S.activeId = S.trackers[0].id;
+
+const getT = () => S.trackers.find(t => t.id === S.activeId) || S.trackers[0];
+const getDayData = (tr, n) => tr.days.find(d => d.day === n) || null;
+
+// ════════════════════════════════════════
+// SCORING
+// ════════════════════════════════════════
+function dayScore(dd) {
+  if (!dd || !dd.todos || !dd.todos.length) return -1.5;
+  const tot = dd.todos.length, done = dd.todos.filter(t => t.completed).length, p = done/tot;
+  return p===1 ? 0.5 : p>=0.5 ? 0.2 : -1;
+}
+function dayStatus(dd) {
+  if (!dd || !dd.todos || !dd.todos.length) return 'empty';
+  const p = dd.todos.filter(t=>t.completed).length / dd.todos.length;
+  return p===1 ? 'done' : p>=0.5 ? 'partial' : 'low';
+}
+function calcSP(tr) {
+  let score = 0;
+  for (let d=1; d<=tr.days_count; d++) score += dayScore(getDayData(tr,d));
+  score = Math.round(score*10)/10;
+  const mn=tr.days_count*-1.5, mx=tr.days_count*0.5;
+  return { score, pct: Math.max(0,Math.min(100,Math.round(((score-mn)/(mx-mn))*100))) };
+}
+const fmt = s => (s>=0?'+':'')+s;
+
+// ════════════════════════════════════════
+// LOCK LOGIC — usa date calendario
+// ════════════════════════════════════════
+function isLocked(tr, dayIdx) {
+  if (!tr || !tr.start_date) return false;
+  const now = new Date();
+
+  // Calcolo basato su date CALENDARIO (mezzanotte), non millisecondi grezzi
+  const start = new Date(tr.start_date); start.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayIdx = Math.floor((today - start) / 86400000) + 1;
+
+  // Oggi → mai bloccato
+  if (dayIdx === todayIdx) return false;
+
+  // Giorni futuri oltre domani → mai bloccati
+  if (dayIdx > todayIdx + 1) return false;
+
+  // Giorni passati senza task → bloccati
+  if (dayIdx < todayIdx) {
+    const dd = getDayData(tr, dayIdx);
+    return !dd || !dd.todos || !dd.todos.length;
+  }
+
+  // Domani (dayIdx === todayIdx+1):
+  // Si blocca SOLO se siamo già nel giorno CALENDARIO di domani
+  // (cioè dopo mezzanotte del giorno successivo) E sono passate le 01:00
+  if (dayIdx === todayIdx + 1) {
+    const tomorrowCal = new Date(today);
+    tomorrowCal.setDate(tomorrowCal.getDate() + 1);
+    const nowCal = new Date(); nowCal.setHours(0,0,0,0);
+    // Se siamo ancora nel giorno di oggi (anche alle 23:59): non bloccato
+    if (nowCal < tomorrowCal) return false;
+    // Siamo nel giorno di domani: blocca solo dopo l'01:00
+    if (now.getHours() < 1) return false;
+    const dd = getDayData(tr, dayIdx);
+    return !dd || !dd.todos || !dd.todos.length;
+  }
+
+  return false;
+}
+
+// ════════════════════════════════════════
+// DONUT
+// ════════════════════════════════════════
+function donut(pct, color, size) {
+  const r=46, cx=60, cy=60, C=2*Math.PI*r, fill=(pct/100)*C;
+  let lines = '';
+  for (let i=0; i<12; i++) {
+    const a=(i/12)*2*Math.PI-Math.PI/2;
+    lines += `<line x1="${(cx+(r-7)*Math.cos(a)).toFixed(1)}" y1="${(cy+(r-7)*Math.sin(a)).toFixed(1)}" x2="${(cx+(r+7)*Math.cos(a)).toFixed(1)}" y2="${(cy+(r+7)*Math.sin(a)).toFixed(1)}" stroke="rgba(8,10,18,.6)" stroke-width="1.8"/>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 120 120" style="display:block">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="14"
+      stroke-dasharray="${fill.toFixed(1)} ${(C-fill).toFixed(1)}" stroke-linecap="round"
+      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dasharray .7s ease"/>
+    ${lines}
+    <text x="${cx}" y="${cy-5}" text-anchor="middle" fill="white" font-size="21" font-weight="700" font-family="Outfit,sans-serif">${pct}%</text>
+  </svg>`;
+}
+
+// ════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════
+let sideOpen = true, pressTimer = null, ctxId = null;
+
+function renderSidebar() {
+  const el = document.getElementById('tracker-list');
+  el.innerHTML = '';
+  S.trackers.forEach(tr => {
+    const {pct} = calcSP(tr);
+    const active = tr.id === S.activeId;
+    const circ = 62.8, arc = (pct/100)*circ;
+    const btn = document.createElement('button');
+    btn.className = 'tracker-btn' + (active?' active':'');
+    btn.style.borderLeftColor = active ? tr.color : 'transparent';
+    const sl = tr.start_date ? tr.start_date.split('-').reverse().slice(0,2).join('/') : '';
+    btn.innerHTML = `
+      <span class="t-dot" style="background:${tr.color}"></span>
+      <div class="t-info">
+        <span class="t-name">${esc(tr.name)}</span>
+        <span class="t-meta">${tr.days_count}g · dal ${sl} · ${pct}%</span>
+      </div>
+      <svg width="26" height="26" viewBox="0 0 28 28" style="flex-shrink:0">
+        <circle cx="14" cy="14" r="10" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="3.5"/>
+        <circle cx="14" cy="14" r="10" fill="none" stroke="${tr.color}" stroke-width="3.5"
+          stroke-dasharray="${arc.toFixed(1)} ${(circ-arc).toFixed(1)}" stroke-linecap="round"
+          transform="rotate(-90 14 14)" style="transition:stroke-dasharray .5s"/>
+      </svg>`;
+    btn.onclick = () => { S.activeId = tr.id; save(); renderAll(); };
+    btn.onmousedown = e => startPress(e, tr.id);
+    btn.onmouseup = btn.onmouseleave = endPress;
+    btn.ontouchstart = e => startPress(e, tr.id);
+    btn.ontouchend = btn.ontouchcancel = endPress;
+    el.appendChild(btn);
+  });
+}
+
+function startPress(e, id) {
+  endPress();
+  const el = e.currentTarget;
+  pressTimer = setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    showCtx(id, r.left+14, r.bottom+8);
+  }, 650);
+}
+function endPress() { clearTimeout(pressTimer); }
+
+function toggleSide() {
+  sideOpen = !sideOpen;
+  const sidebar = document.getElementById('sidebar');
+  const tab = document.getElementById('side-tab');
+  sidebar.classList.toggle('closed', !sideOpen);
+  // Calculate actual sidebar width from computed style
+  const sideW = sideOpen ? sidebar.offsetWidth : 0;
+  tab.style.left = sideW + 'px';
+  document.getElementById('tab-arrow').style.transform = sideOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+// ════════════════════════════════════════
+// MAIN
+// ════════════════════════════════════════
+function renderMain() {
+  const tr = getT();
+  const el = document.getElementById('main-content');
+  if (!tr) {
+    el.innerHTML = `<div class="empty-state"><p>Nessun obiettivo — crea il primo</p>
+      <button class="btn-new" onclick="openCreate()" style="width:auto">＋ Nuovo Obiettivo</button></div>`;
+    return;
+  }
+  const {score, pct} = calcSP(tr);
+  const cols = tr.days_count<=14?7:tr.days_count<=60?10:12;
+  const ns = window._ns || 'ask';
+
+  // Notification bar
+  let nbar = '';
+  if (ns==='ask') nbar=`<div class="notif-bar ask"><span>Attiva le notifiche per ricevere il resoconto ogni sera alle 23:30</span><button class="btn-attiva" onclick="activateN()">Attiva</button></div>`;
+  else if (ns==='ok') nbar=`<div class="notif-bar ok">Notifiche attive — resoconto ogni sera alle 23:30</div>`;
+  else if (ns==='no') nbar=`<div class="notif-bar no">Notifiche bloccate — abilitale nelle impostazioni del browser</div>`;
+
+  // Grid
+  const SBG={empty:'rgba(255,255,255,.04)',done:'rgba(16,185,129,.16)',partial:'rgba(245,158,11,.16)',low:'rgba(244,63,94,.16)'};
+  const SRING={empty:'rgba(255,255,255,.09)',done:'#10b981',partial:'#f59e0b',low:'#f43f5e'};
+  const SCOL={empty:'rgba(255,255,255,.22)',done:'#10b981',partial:'#f59e0b',low:'#f43f5e'};
+  let cells = '';
+  for (let d=1; d<=tr.days_count; d++) {
+    const dd=getDayData(tr,d), st=dayStatus(dd), ds=dayScore(dd), lk=isLocked(tr,d);
+    const bg=lk?'#1a1a2a':SBG[st], bc=lk?'#3a3a5a':SRING[st];
+    const inner = lk
+      ? `<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><rect x="2" y="5" width="8" height="6" rx="1.5" fill="rgba(255,255,255,.25)"/><path d="M4 5V3.5a2 2 0 014 0V5" stroke="rgba(255,255,255,.25)" stroke-width="1.5" stroke-linecap="round"/></svg>`
+      : `<span class="day-score" style="color:${SCOL[st]}">${fmt(ds)}</span>`;
+    cells += `<button class="day-cell${lk?' locked':''}" style="background:${bg};border-color:${bc}" onclick="${lk?'':('openDay('+d+')')}">
+      <span class="day-num">${d}</span>${inner}</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="main-header">
+      <div>
+        <div class="main-title">${esc(tr.name)}</div>
+        <div class="main-sub">${tr.days_count} giorni · dal ${tr.start_date.split('-').reverse().join('/')} · punteggio ${fmt(score)}</div>
+      </div>
+      <div>${donut(pct, tr.color, 108)}</div>
+    </div>
+    <div class="legend">
+      <div class="leg"><span class="leg-dot" style="background:#10b981"></span>Tutto (+0.5)</div>
+      <div class="leg"><span class="leg-dot" style="background:#f59e0b"></span>≥50% (+0.2)</div>
+      <div class="leg"><span class="leg-dot" style="background:#f43f5e"></span>&lt;50% (−1)</div>
+      <div class="leg"><span class="leg-dot" style="background:rgba(255,255,255,.15)"></span>Nessun task (−1.5)</div>
+      <div class="leg"><span class="leg-dot" style="background:#3a3a4a"></span>Bloccato</div>
+    </div>
+    ${nbar}
+    <div class="grid" style="grid-template-columns:repeat(${cols},1fr)">${cells}</div>`;
+}
+
+function renderAll() { renderSidebar(); renderMain(); }
+
+// ════════════════════════════════════════
+// DAY PANEL
+// ════════════════════════════════════════
+let curDay = null;
+
+function openDay(d) {
+  curDay = d;
+  const tr = getT();
+  const lk = isLocked(tr, d);
+  const dd = getDayData(tr, d);
+  document.getElementById('p-lbl').textContent = 'GIORNO ' + d;
+  document.getElementById('p-title').textContent = tr.name;
+  document.getElementById('p-locked').style.display = lk ? 'block' : 'none';
+  // Mini donut
+  const ds = dayScore(dd);
+  const dPct = Math.max(0,Math.min(100,Math.round(((ds-(-1.5))/(0.5-(-1.5)))*100)));
+  document.getElementById('p-donut').innerHTML = donut(dPct, tr.color, 56);
+  document.getElementById('p-donut').querySelector('svg').style.filter = 'drop-shadow(0 3px 10px rgba(0,0,0,.3))';
+  renderPanelBody(tr, d, dd, lk);
+  document.getElementById('day-overlay').style.display = 'flex';
+}
+
+function renderPanelBody(tr, d, dd, lk) {
+  const body = document.getElementById('p-body');
+  const todos = dd ? dd.todos : [];
+  let h = '';
+  if (lk) {
+    h += `<div class="locked-msg">Non hai compilato la to-do list entro l'01:00 di notte.<br>Questo giorno è bloccato permanentemente.</div>`;
+  } else {
+    h += `<div class="task-row">
+      <input class="task-in" id="task-in" placeholder="Aggiungi un task…" onkeydown="if(event.key==='Enter')addTask()"/>
+      <button class="btn-add" style="background:${tr.color}" onclick="addTask()">Aggiungi</button>
+    </div>`;
+  }
+  if (!todos.length) {
+    h += `<div style="text-align:center;color:rgba(255,255,255,.2);font-size:.79rem;padding:24px 0;font-style:italic">${lk?'Nessun task compilato.':'Nessun task — aggiungine uno qui sopra'}</div>`;
+  } else {
+    h += '<ul class="todo-list">';
+    todos.forEach((t,i) => {
+      const hasN = t.notes && t.notes.trim();
+      h += `<li class="todo-item${t.completed?' done':''}">
+        <button class="chk${t.completed?' on':''}" style="--c:${tr.color}" onclick="${lk?'':'toggleTask('+i+')'}">
+          ${t.completed?'<span style="color:#fff;font-size:.6rem">✓</span>':''}
+        </button>
+        <div class="todo-wrap">
+          <span class="todo-txt${t.completed?' done':''}">${esc(t.text)}</span>
+          ${hasN?`<span class="todo-note">${esc(t.notes)}</span>`:''}
+        </div>
+        <button class="btn-nota ${hasN?'full':'empty'}" onclick="openNote(${i})">${hasN?'Note':'+ Nota'}</button>
+        ${!lk?`<button class="btn-del" onclick="delTask(${i})">✕</button>`:''}
+      </li>`;
+    });
+    h += '</ul>';
+    const done = todos.filter(t=>t.completed).length;
+    h += `<div class="prog-wrap">
+      <div class="prog-lbl">${done} di ${todos.length} task completati</div>
+      <div class="prog-track"><div class="prog-fill" style="width:${Math.round(done/todos.length*100)}%;background:${tr.color}"></div></div>
+    </div>`;
+  }
+  body.innerHTML = h;
+  if (!lk) setTimeout(()=>{ const i=document.getElementById('task-in'); if(i)i.focus(); },100);
+}
+
+function closeDay() {
+  document.getElementById('day-overlay').style.display = 'none';
+  curDay = null;
+  renderAll();
+}
+
+function addTask() {
+  const inp = document.getElementById('task-in');
+  if (!inp) return;
+  const txt = inp.value.trim();
+  if (!txt || curDay===null) return;
+  const tr = getT();
+  let dd = getDayData(tr, curDay);
+  if (!dd) { dd={day:curDay,todos:[]}; tr.days.push(dd); }
+  dd.todos.push({id:uid(),text:txt,completed:false,notes:''});
+  save(); inp.value='';
+  refreshPanel();
+}
+
+function toggleTask(i) {
+  const tr=getT(), dd=getDayData(tr,curDay);
+  if (!dd||!dd.todos[i]) return;
+  dd.todos[i].completed = !dd.todos[i].completed;
+  save(); refreshPanel();
+  // aggiorna mini donut
+  const ds=dayScore(dd), dPct=Math.max(0,Math.min(100,Math.round(((ds-(-1.5))/(0.5-(-1.5)))*100)));
+  document.getElementById('p-donut').innerHTML = donut(dPct, tr.color, 56);
+}
+
+function delTask(i) {
+  const tr=getT(), dd=getDayData(tr,curDay);
+  if (!dd) return;
+  dd.todos.splice(i,1);
+  save(); refreshPanel();
+}
+
+function refreshPanel() {
+  const tr=getT(), dd=getDayData(tr,curDay), lk=isLocked(tr,curDay);
+  renderPanelBody(tr,curDay,dd,lk);
+}
+
+// ════════════════════════════════════════
+// NOTE PANEL
+// ════════════════════════════════════════
+let curNoteIdx = null;
+
+function openNote(i) {
+  const tr=getT(), dd=getDayData(tr,curDay);
+  if (!dd||!dd.todos[i]) return;
+  curNoteIdx=i;
+  const todo=dd.todos[i];
+  document.getElementById('note-title').textContent = todo.text;
+  document.getElementById('note-ta').value = todo.notes||'';
+  document.getElementById('note-save').style.background = tr.color;
+  document.getElementById('note-overlay').style.display = 'flex';
+  setTimeout(()=>{ const ta=document.getElementById('note-ta'); if(ta)ta.focus(); },100);
+}
+
+function closeNote() {
+  document.getElementById('note-overlay').style.display='none';
+  curNoteIdx=null;
+}
+
+function saveNote() {
+  if (curNoteIdx===null||curDay===null) return;
+  const tr=getT(), dd=getDayData(tr,curDay);
+  if (!dd||!dd.todos[curNoteIdx]) return;
+  dd.todos[curNoteIdx].notes = document.getElementById('note-ta').value.trim();
+  save();
+  closeNote();
+  refreshPanel();
+}
+
+// ════════════════════════════════════════
+// CONTEXT MENU
+// ════════════════════════════════════════
+function showCtx(id, x, y) {
+  ctxId=id;
+  const tr=S.trackers.find(t=>t.id===id);
+  document.getElementById('ctx-name').textContent = tr?tr.name:'';
+  const el=document.getElementById('ctx');
+  el.style.display='block';
+  el.style.left=Math.min(x,window.innerWidth-200)+'px';
+  el.style.top=y+'px';
+}
+function hideCtx() { document.getElementById('ctx').style.display='none'; }
+
+// ════════════════════════════════════════
+// TRACKER MODAL
+// ════════════════════════════════════════
+let tmMode='create', tmEditId=null, tmColor=PAL[0], tmDays=30;
+
+function buildModal() {
+  // Pills
+  const pc=document.getElementById('tm-pills'); pc.innerHTML='';
+  [7,14,21,30,60,90].forEach(n=>{
+    const b=document.createElement('button');
+    b.className='pill'; b.textContent=n+'g';
+    if(n===tmDays){b.style.background=tmColor;b.style.color='#fff';b.style.borderColor=tmColor;}
+    b.onclick=()=>{ tmDays=n; buildModal(); };
+    pc.appendChild(b);
+  });
+  const ci=document.createElement('input');
+  ci.type='number';ci.min=1;ci.max=365;ci.value=tmDays;
+  ci.className='f-in';ci.style.cssText='width:72px;text-align:center;margin-bottom:0';
+  ci.oninput=()=>{ tmDays=Math.max(1,Math.min(365,+ci.value)); };
+  pc.appendChild(ci);
+  // Colors
+  const cc=document.getElementById('tm-colors'); cc.innerHTML='';
+  PAL.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='col-dot'+(c===tmColor?' sel':'');
+    b.style.background=c;
+    b.onclick=()=>{ tmColor=c; buildModal(); };
+    cc.appendChild(b);
+  });
+  // Confirm btn color
+  document.getElementById('tm-ok').style.background=tmColor;
+  document.getElementById('tm-arc').setAttribute('stroke',tmColor);
+}
+
+function openCreate() {
+  tmMode='create'; tmColor=PAL[0]; tmDays=30;
+  document.getElementById('tm-title').textContent='Nuovo Obiettivo';
+  document.getElementById('tm-sub').textContent='Dai un nome e imposta la durata';
+  document.getElementById('tm-name').value='';
+  document.getElementById('tm-date').value=toISO();
+  document.getElementById('tm-ok').textContent='Crea Obiettivo';
+  buildModal();
+  document.getElementById('tmodal-bg').style.display='flex';
+  setTimeout(()=>document.getElementById('tm-name').focus(),100);
+}
+
+function openEdit(id) {
+  const tr=S.trackers.find(t=>t.id===id); if(!tr)return;
+  tmMode='edit'; tmEditId=id; tmColor=tr.color; tmDays=tr.days_count;
+  document.getElementById('tm-title').textContent='Modifica Obiettivo';
+  document.getElementById('tm-sub').textContent='Aggiorna nome, durata, data o colore';
+  document.getElementById('tm-name').value=tr.name;
+  document.getElementById('tm-date').value=tr.start_date||toISO();
+  document.getElementById('tm-ok').textContent='Salva Modifiche';
+  buildModal();
+  document.getElementById('tmodal-bg').style.display='flex';
+  setTimeout(()=>document.getElementById('tm-name').focus(),100);
+}
+
+function confirmTracker() {
+  const name=document.getElementById('tm-name').value.trim(); if(!name)return;
+  const date=document.getElementById('tm-date').value||toISO();
+  if (tmMode==='create') {
+    const tr={id:uid(),name,days_count:tmDays,color:tmColor,start_date:date,days:[]};
+    S.trackers.push(tr); S.activeId=tr.id;
+  } else {
+    const tr=S.trackers.find(t=>t.id===tmEditId);
+    if(tr){tr.name=name;tr.days_count=tmDays;tr.color=tmColor;tr.start_date=date;}
+  }
+  save();
+  document.getElementById('tmodal-bg').style.display='none';
+  renderAll();
+}
+
+// ════════════════════════════════════════
+// DELETE MODAL
+// ════════════════════════════════════════
+let delTargetId=null;
+function openDelete(id) {
+  const tr=S.trackers.find(t=>t.id===id); if(!tr)return;
+  delTargetId=id;
+  document.getElementById('del-name').textContent=tr.name;
+  document.getElementById('del-bg').style.display='flex';
+}
+function confirmDelete() {
+  S.trackers=S.trackers.filter(t=>t.id!==delTargetId);
+  if(S.activeId===delTargetId) S.activeId=S.trackers.length?S.trackers[0].id:null;
+  save();
+  document.getElementById('del-bg').style.display='none';
+  document.getElementById('day-overlay').style.display='none';
+  renderAll();
+}
+
+// ════════════════════════════════════════
+// NOTIFICATIONS
+// ════════════════════════════════════════
+window._ns = ('Notification' in window) ? (Notification.permission==='granted'?'ok':Notification.permission==='denied'?'no':'ask') : 'no';
+
+function b64ToArr(b) {
+  const pad='='.repeat((4-b.length%4)%4);
+  const raw=atob((b+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+
+async function activateN() {
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+    alert('Le notifiche push non sono supportate su questo browser.'); return;
+  }
+  try {
+    const reg=await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){ window._ns='no'; renderMain(); return; }
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      const {key}=await(await fetch('/vapid-public-key')).json();
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToArr(key)});
+    }
+    await fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+    window._ns='ok'; renderMain();
+  } catch(e) { console.error(e); alert('Errore: '+e.message); }
+}
+
+// ════════════════════════════════════════
+// EVENT LISTENERS
+// ════════════════════════════════════════
+document.getElementById('side-tab').onclick = toggleSide;
+// Set initial tab position based on actual sidebar width
+setTimeout(() => {
+  const sidebar = document.getElementById('sidebar');
+  document.getElementById('side-tab').style.left = sidebar.offsetWidth + 'px';
+}, 50);
+document.getElementById('btn-new').onclick = openCreate;
+document.getElementById('p-close').onclick = closeDay;
+document.getElementById('day-overlay').onclick = e=>{ if(e.target===document.getElementById('day-overlay'))closeDay(); };
+document.getElementById('note-close').onclick = closeNote;
+document.getElementById('note-cancel').onclick = closeNote;
+document.getElementById('note-overlay').onclick = e=>{ if(e.target===document.getElementById('note-overlay'))closeNote(); };
+document.getElementById('note-save').onclick = saveNote;
+document.getElementById('tm-cancel').onclick = ()=>document.getElementById('tmodal-bg').style.display='none';
+document.getElementById('tmodal-bg').onclick = e=>{ if(e.target===document.getElementById('tmodal-bg'))document.getElementById('tmodal-bg').style.display='none'; };
+document.getElementById('tm-ok').onclick = confirmTracker;
+document.getElementById('del-cancel').onclick = ()=>document.getElementById('del-bg').style.display='none';
+document.getElementById('del-bg').onclick = e=>{ if(e.target===document.getElementById('del-bg'))document.getElementById('del-bg').style.display='none'; };
+document.getElementById('del-ok').onclick = confirmDelete;
+document.getElementById('ctx-edit').onclick = ()=>{ hideCtx(); openEdit(ctxId); };
+document.getElementById('ctx-del').onclick = ()=>{ hideCtx(); openDelete(ctxId); };
+document.addEventListener('click', e=>{ const c=document.getElementById('ctx'); if(!c.contains(e.target))hideCtx(); });
+
+// INIT
+renderAll();
+</script>
+</body>
+</html>

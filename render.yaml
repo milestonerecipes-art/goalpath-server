@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: goalpath-push
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: VAPID_PUBLIC_KEY
+        value: BM20VmKss_BKLdiBIAh1vclE4LHFaqowtfcTbSNbePYmb4qF8C5zrubiNnhHZhL07xGK8WlYyxTokCL8i08ECEk
+      - key: VAPID_PRIVATE_KEY
+        value: GnjkGl5SOzxZ5rN5YcBXuKmDStKkG-HF6NcmoXVmoFU
+      - key: VAPID_EMAIL
+        value: mailto:goalpath@app.com
